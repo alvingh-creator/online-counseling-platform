@@ -2,7 +2,8 @@ import { useState, useContext } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { API_URL } from '../config';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 export default function Login() {
   const { setUserAndToken } = useContext(AuthContext);
