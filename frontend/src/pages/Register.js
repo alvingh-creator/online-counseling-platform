@@ -1,250 +1,115 @@
 import { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
+import { API_URL } from '../config';
 
 export default function Register() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    role: 'client', // 'client' or 'counselor'
-    // Counselor-specific fields
-    specialization: '',
-    licenseNumber: '',
-    hourlyRate: '',
-  });
-
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  
+  const { setUserAndToken } = useContext(AuthContext);
   const navigate = useNavigate();
-  const { register } = useContext(AuthContext);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('client');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  // Handle input changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
-    // Validation
-    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
-      setError('Please fill in all required fields');
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
-    if (formData.role === 'counselor') {
-      if (!formData.specialization || !formData.licenseNumber || !formData.hourlyRate) {
-        setError('Please fill in all counselor information');
-        return;
-      }
-    }
-
-    setLoading(true);
-
-    // Prepare data for backend
-    const registerData = {
-      name: formData.name,
-      email: formData.email,
-      password: formData.password,
-      role: formData.role,
-    };
-
-    // Add counselor fields if registering as counselor
-    if (formData.role === 'counselor') {
-      registerData.specialization = formData.specialization;
-      registerData.licenseNumber = formData.licenseNumber;
-      registerData.hourlyRate = parseFloat(formData.hourlyRate);
-    }
-
-    const result = await register(registerData);
-    
-    if (result.success) {
-      // Redirect to dashboard
+    setSubmitting(true);
+    try {
+      const res = await axios.post(`${API_URL}/auth/register`, {
+        name,
+        email,
+        password,
+        role
+      });
+      const { token, user } = res.data;
+      setUserAndToken(user, token);
       navigate('/dashboard');
-    } else {
-      setError(result.message);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
-    
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
-        <h1 className="text-4xl font-bold text-center mb-2 text-gray-800">
-          💚 CounselHub
-        </h1>
-        <p className="text-center text-gray-600 mb-8">
-          Create Your Account
-        </p>
-
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-8">
+        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Create Account</h1>
+        
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+          <div className="mb-4 bg-red-50 text-red-800 border border-red-200 rounded-lg p-3 text-sm">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
-          {/* Name Input */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-2">
-              Full Name
-            </label>
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Full Name</label>
             <input
               type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="John Doe"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+              required
             />
           </div>
 
-          {/* Email Input */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-2">
-              Email Address
-            </label>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
             <input
               type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="you@example.com"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+              required
             />
           </div>
 
-          {/* Role Selection */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-2">
-              I am a:
-            </label>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="••••••••"
+              required
+              minLength={6}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">I am a...</label>
             <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
-              <option value="client">Client (Seeking Counseling)</option>
-              <option value="counselor">Counselor (Offering Services)</option>
+              <option value="client">Client (seeking counseling)</option>
+              <option value="counselor">Counselor (providing counseling)</option>
             </select>
           </div>
 
-          {/* Counselor-specific fields */}
-          {formData.role === 'counselor' && (
-            <>
-              <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Specialization
-                </label>
-                <input
-                  type="text"
-                  name="specialization"
-                  value={formData.specialization}
-                  onChange={handleChange}
-                  placeholder="e.g., Mental Health, Relationships"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-2">
-                  License Number
-                </label>
-                <input
-                  type="text"
-                  name="licenseNumber"
-                  value={formData.licenseNumber}
-                  onChange={handleChange}
-                  placeholder="Your license number"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-                />
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-2">
-                  Hourly Rate ($)
-                </label>
-                <input
-                  type="number"
-                  name="hourlyRate"
-                  value={formData.hourlyRate}
-                  onChange={handleChange}
-                  placeholder="50"
-                  min="0"
-                  step="0.01"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-                />
-              </div>
-            </>
-          )}
-
-          {/* Password Input */}
-          <div className="mb-4">
-            <label className="block text-gray-700 font-semibold mb-2">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-            />
-          </div>
-
-          {/* Confirm Password Input */}
-          <div className="mb-6">
-            <label className="block text-gray-700 font-semibold mb-2">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="••••••••"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition"
-            />
-          </div>
-
-          {/* Register Button */}
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition disabled:bg-gray-400 mb-4"
+            disabled={submitting}
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50"
           >
-            {loading ? 'Creating Account...' : 'Create Account'}
+            {submitting ? 'Creating account...' : 'Register'}
           </button>
         </form>
 
-        {/* Login Link */}
-        <p className="text-center text-gray-600">
+        <p className="text-center text-sm text-gray-600 mt-6">
           Already have an account?{' '}
-          <a href="/login" className="text-green-600 font-semibold hover:underline">
-            Login
-          </a>
+          <Link to="/login" className="text-purple-600 hover:text-purple-700 font-semibold">
+            Login here
+          </Link>
         </p>
       </div>
     </div>
