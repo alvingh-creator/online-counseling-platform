@@ -1,21 +1,18 @@
 import { useState, useEffect, useContext, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { io } from 'socket.io-client';
 import { AuthContext } from '../context/AuthContext';
-
-const SOCKET_URL = 'http://localhost:5000';
+import { useSocket } from '../context/SocketContext';
 
 export default function Chat() {
   const { appointmentId } = useParams();
   const { user, token } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { socket, connected } = useSocket();
 
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState('');
   const [loading, setLoading] = useState(true);
-  const [connected, setConnected] = useState(false);
   const messagesEndRef = useRef(null);
-  const socketRef = useRef(null);
 
   // Scroll to bottom when new message arrives
   const scrollToBottom = () => {
@@ -26,83 +23,92 @@ export default function Chat() {
     scrollToBottom();
   }, [messages]);
 
-  // Connect to Socket.io
+  // Join chat room and setup message listeners
   useEffect(() => {
-    // Initialize socket connection
-    socketRef.current = io(SOCKET_URL, {
-      auth: {
-        token: token
-      },
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: 5
-    });
+    if (!socket || !appointmentId) {
+      if (connected === false) {
+        setLoading(true);
+      }
+      return;
+    }
 
-    // Connection events
-    socketRef.current.on('connect', () => {
-      console.log('Connected to server');
-      setConnected(true);
-      setLoading(false);
+    console.log('📍 Setting up chat for appointment:', appointmentId);
+    setLoading(false);
 
-      // Join the chat room
-      socketRef.current.emit('join-chat', {
-        appointmentId,
-        userId: user?.id
-      });
+    // Join the chat room
+    socket.emit('join-chat', {
+      appointmentId,
+      userId: user?.id
     });
+    console.log('✅ Joined chat room');
 
     // Receive messages
-    socketRef.current.on('receive-message', (data) => {
+    const handleReceiveMessage = (data) => {
+      console.log('💬 Received message:', data);
       setMessages(prev => [...prev, {
         id: Date.now(),
         ...data
       }]);
-    });
+    };
 
     // User joined
-    socketRef.current.on('user-joined', (data) => {
+    const handleUserJoined = (data) => {
+      console.log('👤 User joined:', data);
       setMessages(prev => [...prev, {
         id: Date.now(),
         ...data,
         type: 'system'
       }]);
-    });
+    };
 
     // User left
-    socketRef.current.on('user-left', (data) => {
+    const handleUserLeft = (data) => {
+      console.log('👋 User left:', data);
       setMessages(prev => [...prev, {
         id: Date.now(),
         ...data,
         type: 'system'
       }]);
-    });
+    };
 
-    // Connection error
-    socketRef.current.on('connect_error', (error) => {
-      console.error('Connection error:', error);
-      setConnected(false);
-    });
+    // Chat joined confirmation
+    const handleChatJoined = (data) => {
+      console.log('🎉 Chat joined successfully:', data);
+    };
+
+    // Setup listeners
+    socket.on('receive-message', handleReceiveMessage);
+    socket.on('user-joined', handleUserJoined);
+    socket.on('user-left', handleUserLeft);
+    socket.on('chat-joined', handleChatJoined);
 
     // Cleanup on unmount
     return () => {
-      if (socketRef.current) {
-        socketRef.current.emit('leave-chat', {
-          appointmentId,
-          userId: user?.id
-        });
-        socketRef.current.disconnect();
-      }
+      console.log('Leaving chat room...');
+      socket.emit('leave-chat', {
+        appointmentId,
+        userId: user?.id
+      });
+
+      socket.off('receive-message', handleReceiveMessage);
+      socket.off('user-joined', handleUserJoined);
+      socket.off('user-left', handleUserLeft);
+      socket.off('chat-joined', handleChatJoined);
     };
-  }, [appointmentId, user, token]);
+  }, [socket, appointmentId, user]);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
 
-    if (!messageInput.trim() || !connected) return;
+    if (!messageInput.trim() || !socket || !connected) {
+      console.log('⚠️ Cannot send: input empty or not connected');
+      return;
+    }
+
+    console.log('📤 Sending message:', messageInput);
 
     // Send message through socket
-    socketRef.current.emit('send-message', {
+    socket.emit('send-message', {
       appointmentId,
       message: messageInput,
       sender: user?.id,
@@ -125,7 +131,10 @@ export default function Chat() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-2xl font-bold text-blue-600">Connecting to chat...</div>
+        <div className="text-center">
+          <div className="text-2xl font-bold text-blue-600 mb-2">⏳ Connecting to chat...</div>
+          <p className="text-gray-600">Connected to socket: {connected ? '✅' : '❌'}</p>
+        </div>
       </div>
     );
   }
@@ -136,7 +145,7 @@ export default function Chat() {
       <div className="bg-white shadow-lg p-4 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">💬 Chat Room</h1>
-          <p className={`text-sm ${connected ? 'text-green-600' : 'text-red-600'}`}>
+          <p className={`text-sm font-semibold ${connected ? 'text-green-600' : 'text-red-600'}`}>
             {connected ? '🟢 Connected' : '🔴 Disconnected'}
           </p>
         </div>
@@ -205,7 +214,7 @@ export default function Chat() {
           </button>
         </form>
         {!connected && (
-          <p className="text-red-600 text-sm mt-2">Connection lost. Attempting to reconnect...</p>
+          <p className="text-red-600 text-sm mt-2">⚠️ Connection lost. Attempting to reconnect...</p>
         )}
       </div>
     </div>

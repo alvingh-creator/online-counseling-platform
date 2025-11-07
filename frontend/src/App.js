@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useContext } from 'react';
 import { AuthContext } from './context/AuthContext';
+import { SocketProvider } from './context/SocketContext';
 
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -28,95 +29,97 @@ function App() {
   }
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        
-        {/* Protected Routes */}
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
+    <SocketProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          
+          {/* Protected Routes */}
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
 
-        <Route 
-          path="/browse-counselors" 
-          element={
-            <ProtectedRoute requiredRole="client">
-              <BrowseCounselors />
-            </ProtectedRoute>
-          } 
-        />
+          <Route 
+            path="/browse-counselors" 
+            element={
+              <ProtectedRoute requiredRole="client">
+                <BrowseCounselors />
+              </ProtectedRoute>
+            } 
+          />
 
-        <Route 
-          path="/book-appointment/:counselorId" 
-          element={
-            <ProtectedRoute requiredRole="client">
-              <BookAppointment />
-            </ProtectedRoute>
-          } 
-        />
+          <Route 
+            path="/book-appointment/:counselorId" 
+            element={
+              <ProtectedRoute requiredRole="client">
+                <BookAppointment />
+              </ProtectedRoute>
+            } 
+          />
 
-        <Route 
-          path="/chat-link" 
-          element={
-            <ProtectedRoute>
-              <ChatLink />
-            </ProtectedRoute>
-          } 
-        />
+          <Route 
+            path="/chat-link" 
+            element={
+              <ProtectedRoute>
+                <ChatLink />
+              </ProtectedRoute>
+            } 
+          />
 
-        <Route 
-          path="/chat/:appointmentId" 
-          element={
-            <ProtectedRoute>
-              <Chat />
-            </ProtectedRoute>
-          } 
-        />
+          <Route 
+            path="/chat/:appointmentId" 
+            element={
+              <ProtectedRoute>
+                <Chat />
+              </ProtectedRoute>
+            } 
+          />
 
-        <Route 
-          path="/payment/:appointmentId" 
-          element={
-            <ProtectedRoute requiredRole="client">
-              <Payment />
-            </ProtectedRoute>
-          } 
-        />
+          <Route 
+            path="/payment/:appointmentId" 
+            element={
+              <ProtectedRoute requiredRole="client">
+                <Payment />
+              </ProtectedRoute>
+            } 
+          />
 
-        <Route 
-          path="/video/:appointmentId" 
-          element={
-            <ProtectedRoute>
-              <VideoCall />
-            </ProtectedRoute>
-          } 
-        />
+          <Route 
+            path="/video/:appointmentId" 
+            element={
+              <ProtectedRoute>
+                <VideoCall />
+              </ProtectedRoute>
+            } 
+          />
 
-        <Route 
-          path="/availability" 
-          element={
-            <ProtectedRoute requiredRole="counselor">
-              <Availability />
-            </ProtectedRoute>
-          } 
-        />
+          <Route 
+            path="/availability" 
+            element={
+              <ProtectedRoute requiredRole="counselor">
+                <Availability />
+              </ProtectedRoute>
+            } 
+          />
 
-        <Route 
-          path="/client-records" 
-          element={
-            <ProtectedRoute requiredRole="client">
-              <ClientRecords />
-            </ProtectedRoute>
-          } 
-        />
-      </Routes>
-    </Router>
+          <Route 
+            path="/client-records" 
+            element={
+              <ProtectedRoute requiredRole="client">
+                <ClientRecords />
+              </ProtectedRoute>
+            } 
+          />
+        </Routes>
+      </Router>
+    </SocketProvider>
   );
 }
 
