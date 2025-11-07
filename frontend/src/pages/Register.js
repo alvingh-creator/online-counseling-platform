@@ -5,7 +5,6 @@ import { AuthContext } from '../context/AuthContext';
 
 const API_URL = 'https://online-counseling-platform-api.onrender.com/api';
 
-
 export default function Register() {
   const { setUserAndToken } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -27,9 +26,16 @@ export default function Register() {
         password,
         role
       });
-      const { token, user } = res.data;
-      setUserAndToken(user, token);
-      navigate('/dashboard');
+      // Backend returns { success, token, user }
+      const token = res.data.token;
+      const user = res.data.user;
+      
+      if (token && user) {
+        setUserAndToken(user, token);
+        navigate('/dashboard');
+      } else {
+        setError('Registration successful but no token received');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {

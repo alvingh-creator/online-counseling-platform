@@ -5,7 +5,6 @@ import { AuthContext } from '../context/AuthContext';
 
 const API_URL = 'https://online-counseling-platform-api.onrender.com/api';
 
-
 export default function Login() {
   const { setUserAndToken } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -20,9 +19,16 @@ export default function Login() {
     setSubmitting(true);
     try {
       const res = await axios.post(`${API_URL}/auth/login`, { email, password });
-      const { token, user } = res.data;
-      setUserAndToken(user, token);
-      navigate('/dashboard');
+      // Backend returns { success, token, user }
+      const token = res.data.token;
+      const user = res.data.user;
+      
+      if (token && user) {
+        setUserAndToken(user, token);
+        navigate('/dashboard');
+      } else {
+        setError('Login successful but no token received');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
