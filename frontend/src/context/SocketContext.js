@@ -21,8 +21,10 @@ export const SocketProvider = ({ children }) => {
 
     let SOCKET_URL;
     if (process.env.NODE_ENV === 'production') {
+      // Use Render backend in production
       SOCKET_URL = 'https://online-counseling-platform-api.onrender.com';
     } else {
+      // Use localhost in development
       SOCKET_URL = 'http://localhost:5000';
     }
 
