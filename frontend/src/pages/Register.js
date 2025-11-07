@@ -166,4 +166,6 @@ export default function Register() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounde
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-2 px-4 rounded"
+            >{submitting ? 'Submitting...' : 'Register'}
+            </button>
