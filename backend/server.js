@@ -12,25 +12,41 @@ dotenv.config();
 // Initialize express app
 const app = express();
 const server = http.createServer(app);
+
+// Socket.io setup with proper CORS
 const io = socketIO(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? 'your-deployed-frontend-url.com'
-      : 'http://localhost:3000',
-    methods: ['GET', 'POST']
-  }
+      ? [
+          'https://alvin-online-counseling-platform.netlify.app',
+          process.env.CORS_ORIGIN || 'http://localhost:3000'
+        ]
+      : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+    methods: ['GET', 'POST'],
+    credentials: true,
+    allowEIO3: true
+  },
+  transports: ['websocket', 'polling']
 });
 
 // Connect to database
 connectDB();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? [
+        'https://alvin-online-counseling-platform.netlify.app',
+        process.env.CORS_ORIGIN || 'http://localhost:3000'
+      ]
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 
 // Make io accessible to routes
 app.use((req, res, next) => {
@@ -43,63 +59,140 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/payments', require('./routes/payments'));
 
-
 // Socket.io connection handling
 io.on('connection', (socket) => {
-  console.log('New user connected:', socket.id);
+  console.log('✅ New user connected:', socket.id);
+  console.log('Total connected users:', io.engine.clientsCount);
 
   // User joins a chat room
   socket.on('join-chat', (data) => {
-    const { appointmentId, userId } = data;
-    const roomName = `chat-${appointmentId}`;
-    
-    socket.join(roomName);
-    console.log(`User ${userId} joined room ${roomName}`);
-    
-    // Notify others in the room
-    io.to(roomName).emit('user-joined', {
-      message: `User joined the chat`,
-      userId
-    });
+    try {
+      const { appointmentId, userId } = data;
+      const roomName = `chat-${appointmentId}`;
+      
+      socket.join(roomName);
+      console.log(`👤 User ${userId} joined room ${roomName}`);
+      console.log(`📊 Users in room ${roomName}:`, io.sockets.adapter.rooms.get(roomName)?.size || 0);
+      
+      // Notify others in the room
+      socket.to(roomName).emit('user-joined', {
+        message: `User joined the chat`,
+        userId,
+        timestamp: new Date()
+      });
+
+      // Send confirmation to joining user
+      socket.emit('chat-joined', {
+        message: 'You joined the chat',
+        roomName
+      });
+    } catch (error) {
+      console.error('Error in join-chat:', error);
+      socket.emit('error', { message: 'Failed to join chat' });
+    }
   });
 
   // Handle incoming messages
   socket.on('send-message', (data) => {
-    const { appointmentId, message, sender, senderName, timestamp } = data;
-    const roomName = `chat-${appointmentId}`;
+    try {
+      const { appointmentId, message, sender, senderName, timestamp } = data;
+      const roomName = `chat-${appointmentId}`;
 
-    // Broadcast message to all in the room
-    io.to(roomName).emit('receive-message', {
-      message,
-      sender,
-      senderName,
-      timestamp: timestamp || new Date()
-    });
+      console.log(`💬 Message from ${senderName} in ${roomName}: ${message}`);
 
-    console.log(`Message from ${senderName}: ${message}`);
+      // Broadcast message to all in the room (including sender)
+      io.to(roomName).emit('receive-message', {
+        message,
+        sender,
+        senderName,
+        timestamp: timestamp || new Date(),
+        appointmentId
+      });
+    } catch (error) {
+      console.error('Error in send-message:', error);
+      socket.emit('error', { message: 'Failed to send message' });
+    }
   });
 
   // User leaves chat
   socket.on('leave-chat', (data) => {
-    const { appointmentId, userId } = data;
-    const roomName = `chat-${appointmentId}`;
-    
-    socket.leave(roomName);
-    io.to(roomName).emit('user-left', {
-      message: `User left the chat`,
-      userId
-    });
+    try {
+      const { appointmentId, userId } = data;
+      const roomName = `chat-${appointmentId}`;
+      
+      socket.leave(roomName);
+      console.log(`👋 User ${userId} left room ${roomName}`);
+      
+      io.to(roomName).emit('user-left', {
+        message: `User left the chat`,
+        userId,
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error('Error in leave-chat:', error);
+    }
+  });
+
+  // Handle video call events
+  socket.on('initiate-video-call', (data) => {
+    try {
+      const { appointmentId, callerId, callerName } = data;
+      const roomName = `video-${appointmentId}`;
+      
+      socket.join(roomName);
+      socket.to(roomName).emit('incoming-video-call', {
+        callerId,
+        callerName,
+        appointmentId
+      });
+      console.log(`📞 Video call initiated in ${roomName}`);
+    } catch (error) {
+      console.error('Error in video call:', error);
+    }
+  });
+
+  socket.on('webrtc-offer', (data) => {
+    const { appointmentId, offer } = data;
+    const roomName = `video-${appointmentId}`;
+    socket.to(roomName).emit('webrtc-offer', { offer, senderId: socket.id });
+  });
+
+  socket.on('webrtc-answer', (data) => {
+    const { appointmentId, answer } = data;
+    const roomName = `video-${appointmentId}`;
+    socket.to(roomName).emit('webrtc-answer', { answer, senderId: socket.id });
+  });
+
+  socket.on('webrtc-ice-candidate', (data) => {
+    const { appointmentId, candidate } = data;
+    const roomName = `video-${appointmentId}`;
+    socket.to(roomName).emit('webrtc-ice-candidate', { candidate });
   });
 
   // Handle disconnection
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    console.log('❌ User disconnected:', socket.id);
+    console.log('Total connected users:', io.engine.clientsCount);
+  });
+
+  // Handle errors
+  socket.on('error', (error) => {
+    console.error('Socket error:', error);
   });
 });
 
 // Basic route for testing
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to Online Counseling Platform API' });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK',
+    timestamp: new Date(),
+    connectedUsers: io.engine.clientsCount
+  });
 });
 
 // Error handling middleware
@@ -112,4 +205,6 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🔌 Socket.io initialized with CORS`);
+  console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
