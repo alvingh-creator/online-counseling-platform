@@ -17,38 +17,10 @@ export default function Register() {
   const [hourlyRate, setHourlyRate] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-
-  const validatePassword = (pass) => {
-    if (pass.length < 8) {
-      setError('Password must be at least 8 characters long');
-      return false;
-    }
-    if (!/[A-Z]/.test(pass)) {
-      setError('Password must contain at least one uppercase letter');
-      return false;
-    }
-    if (!/[a-z]/.test(pass)) {
-      setError('Password must contain at least one lowercase letter');
-      return false;
-    }
-    if (!/[0-9]/.test(pass)) {
-      setError('Password must contain at least one number');
-      return false;
-    }
-    return true;
-  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
-    // Validate password
-    if (!validatePassword(password)) {
-      return;
-    }
-    
     setSubmitting(true);
     try {
       const registerData = {
@@ -128,19 +100,12 @@ export default function Register() {
             <input
               type="password"
               value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                validatePassword(e.target.value);
-              }}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="••••••••"
               required
-              minLength={8}
-              aria-describedby="password-requirements"
+              minLength={6}
             />
-            <p id="password-requirements" className="mt-1 text-xs text-gray-500">
-              Must be at least 8 characters with 1 uppercase, 1 lowercase, and 1 number
-            </p>
           </div>
 
           <div>
@@ -201,17 +166,19 @@ export default function Register() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold py-2 px-4 rounded hover:opacity-90 transition-opacity"
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50"
           >
-            {submitting ? 'Submitting...' : 'Register'}
+            {submitting ? 'Creating account...' : 'Register'}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-gray-600">
+        <p className="text-center text-sm text-gray-600 mt-6">
           Already have an account?{' '}
-          <Link to="/login" className="text-purple-600 hover:text-purple-800 font-medium">
-            Sign In
+          <Link to="/login" className="text-purple-600 hover:text-purple-700 font-semibold">
+            Login here
           </Link>
         </p>
       </div>
     </div>
+  );
+}
