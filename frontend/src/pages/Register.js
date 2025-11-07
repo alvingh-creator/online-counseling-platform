@@ -12,6 +12,9 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('client');
+  const [specialization, setSpecialization] = useState('');
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [hourlyRate, setHourlyRate] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -20,16 +23,29 @@ export default function Register() {
     setError('');
     setSubmitting(true);
     try {
-      const res = await axios.post(`${API_URL}/auth/register`, {
+      const registerData = {
         name,
         email,
         password,
         role
-      });
-      // Backend returns { success, token, user }
+      };
+
+      // Add counselor fields if role is counselor
+      if (role === 'counselor') {
+        if (!specialization || !licenseNumber || !hourlyRate) {
+          setError('Specialization, License Number, and Hourly Rate are required for counselors');
+          setSubmitting(false);
+          return;
+        }
+        registerData.specialization = specialization;
+        registerData.licenseNumber = licenseNumber;
+        registerData.hourlyRate = parseFloat(hourlyRate);
+      }
+
+      const res = await axios.post(`${API_URL}/auth/register`, registerData);
       const token = res.data.token;
       const user = res.data.user;
-      
+
       if (token && user) {
         setUserAndToken(user, token);
         navigate('/dashboard');
@@ -104,22 +120,50 @@ export default function Register() {
             </select>
           </div>
 
+          {/* COUNSELOR FIELDS - Only show when role is counselor */}
+          {role === 'counselor' && (
+            <>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Specialization</label>
+                <input
+                  type="text"
+                  value={specialization}
+                  onChange={(e) => setSpecialization(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="e.g., Anxiety Therapy, Depression Counseling"
+                  required={role === 'counselor'}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">License Number</label>
+                <input
+                  type="text"
+                  value={licenseNumber}
+                  onChange={(e) => setLicenseNumber(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="e.g., LIC-12345"
+                  required={role === 'counselor'}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Hourly Rate ($)</label>
+                <input
+                  type="number"
+                  value={hourlyRate}
+                  onChange={(e) => setHourlyRate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="e.g., 50"
+                  min="0"
+                  step="0.01"
+                  required={role === 'counselor'}
+                />
+              </div>
+            </>
+          )}
+
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition disabled:opacity-50"
-          >
-            {submitting ? 'Creating account...' : 'Register'}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-gray-600 mt-6">
-          Already have an account?{' '}
-          <Link to="/login" className="text-purple-600 hover:text-purple-700 font-semibold">
-            Login here
-          </Link>
-        </p>
-      </div>
-    </div>
-  );
-}
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounde
