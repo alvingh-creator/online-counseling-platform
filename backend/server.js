@@ -66,8 +66,10 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/users', require('./routes/users'));
 app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/payments', require('./routes/payments'));
+
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
