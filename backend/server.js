@@ -13,16 +13,18 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// Socket.io setup with proper CORS
+// CORS Configuration - WORKS FOR BOTH DEV AND PRODUCTION
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://alvin-online-counseling-platform.netlify.app'
+];
+
+// Socket.io setup with CORS
 const io = socketIO(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? [
-          'https://alvin-online-counseling-platform.netlify.app',
-          process.env.CORS_ORIGIN || 'http://localhost:3000'
-        ]
-      : ['http://localhost:3000', 'http://127.0.0.1:3000'],
-    methods: ['GET', 'POST'],
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true,
     allowEIO3: true
   },
@@ -32,16 +34,24 @@ const io = socketIO(server, {
 // Connect to database
 connectDB();
 
-// Middleware
+// Middleware - CORS for Express
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? [
-        'https://alvin-online-counseling-platform.netlify.app',
-        process.env.CORS_ORIGIN || 'http://localhost:3000'
-      ]
-    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      console.log('❌ CORS blocked origin:', origin);
+      return callback(new Error('CORS policy: Origin not allowed'), false);
+    }
+    console.log('✅ CORS allowed origin:', origin);
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -74,14 +84,12 @@ io.on('connection', (socket) => {
       console.log(`👤 User ${userId} joined room ${roomName}`);
       console.log(`📊 Users in room ${roomName}:`, io.sockets.adapter.rooms.get(roomName)?.size || 0);
       
-      // Notify others in the room
       socket.to(roomName).emit('user-joined', {
         message: `User joined the chat`,
         userId,
         timestamp: new Date()
       });
 
-      // Send confirmation to joining user
       socket.emit('chat-joined', {
         message: 'You joined the chat',
         roomName
@@ -100,7 +108,6 @@ io.on('connection', (socket) => {
 
       console.log(`💬 Message from ${senderName} in ${roomName}: ${message}`);
 
-      // Broadcast message to all in the room (including sender)
       io.to(roomName).emit('receive-message', {
         message,
         sender,
@@ -175,7 +182,6 @@ io.on('connection', (socket) => {
     console.log('Total connected users:', io.engine.clientsCount);
   });
 
-  // Handle errors
   socket.on('error', (error) => {
     console.error('Socket error:', error);
   });
@@ -183,7 +189,11 @@ io.on('connection', (socket) => {
 
 // Basic route for testing
 app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to Online Counseling Platform API' });
+  res.json({ 
+    message: 'Welcome to Online Counseling Platform API',
+    status: 'running',
+    timestamp: new Date()
+  });
 });
 
 // Health check endpoint
@@ -191,20 +201,25 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK',
     timestamp: new Date(),
-    connectedUsers: io.engine.clientsCount
+    connectedUsers: io.engine.clientsCount,
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  console.error('❌ Error:', err.stack);
+  res.status(500).json({ 
+    message: 'Something went wrong!',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
 // Start server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🔌 Socket.io initialized with CORS`);
+  console.log(`🔌 Socket.io initialized`);
   console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`✅ CORS enabled for:`, allowedOrigins);
 });
