@@ -4,7 +4,9 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import AppointmentCard from '../components/AppointmentCard';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL =
+process.env.REACT_APP_API_URL ||
+'https://online-counseling-platform-api.onrender.com/api';
 
 export default function ClientDashboard() {
   const { user, logout, token } = useContext(AuthContext);
