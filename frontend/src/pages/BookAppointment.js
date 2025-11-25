@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 
-const API_URL = 'http://localhost:5000/api';
+// Use correct backend URL in production, localhost in dev
+const API_URL =
+  process.env.REACT_APP_API_URL || 'https://online-counseling-platform-api.onrender.com/api';
 
 export default function BookAppointment() {
   const { counselorId } = useParams();
@@ -25,19 +27,23 @@ export default function BookAppointment() {
 
   useEffect(() => {
     fetchCounselorDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [counselorId]);
 
   const fetchCounselorDetails = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/appointments/counselors/${counselorId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(
+        `${API_URL}/appointments/counselors/${counselorId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
       setCounselor(response.data.data);
       setError('');
     } catch (err) {
+      console.error('Fetch counselor error:', err?.response?.data || err.message);
       setError('Failed to load counselor details');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -55,7 +61,6 @@ export default function BookAppointment() {
     e.preventDefault();
     setError('');
 
-    // Validation
     if (!formData.appointmentDate || !formData.appointmentTime) {
       setError('Please select date and time');
       return;
@@ -67,7 +72,7 @@ export default function BookAppointment() {
       const response = await axios.post(
         `${API_URL}/appointments/create`,
         {
-          counselorId,
+          counselorId, // this goes straight to backend, no change for mobile/laptop
           serviceType: formData.serviceType,
           appointmentDate: formData.appointmentDate,
           appointmentTime: formData.appointmentTime,
@@ -82,8 +87,11 @@ export default function BookAppointment() {
       if (response.data.success) {
         alert('Appointment booked successfully!');
         navigate('/dashboard');
+      } else {
+        setError(response.data.message || 'Failed to book appointment');
       }
     } catch (err) {
+      console.error('Book appointment error:', err?.response?.data || err.message);
       setError(err.response?.data?.message || 'Failed to book appointment');
     } finally {
       setBooking(false);
@@ -120,7 +128,7 @@ export default function BookAppointment() {
         {/* Counselor Info Card */}
         <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
           <h2 className="text-3xl font-bold mb-4">{counselor.name}</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <p className="text-gray-600 font-semibold">Specialization:</p>
@@ -128,7 +136,9 @@ export default function BookAppointment() {
             </div>
             <div>
               <p className="text-gray-600 font-semibold">Rate:</p>
-              <p className="text-lg text-green-600 font-bold">${counselor.hourlyRate}/hour</p>
+              <p className="text-lg text-green-600 font-bold">
+                ${counselor.hourlyRate}/hour
+              </p>
             </div>
             <div>
               <p className="text-gray-600 font-semibold">License:</p>
@@ -154,7 +164,9 @@ export default function BookAppointment() {
           <form onSubmit={handleSubmit}>
             {/* Service Type */}
             <div className="mb-6">
-              <label className="block text-gray-700 font-semibold mb-2">Service Type:</label>
+              <label className="block text-gray-700 font-semibold mb-2">
+                Service Type:
+              </label>
               <select
                 name="serviceType"
                 value={formData.serviceType}
@@ -169,7 +181,9 @@ export default function BookAppointment() {
 
             {/* Appointment Date */}
             <div className="mb-6">
-              <label className="block text-gray-700 font-semibold mb-2">Date:</label>
+              <label className="block text-gray-700 font-semibold mb-2">
+                Date:
+              </label>
               <input
                 type="date"
                 name="appointmentDate"
@@ -182,7 +196,9 @@ export default function BookAppointment() {
 
             {/* Appointment Time */}
             <div className="mb-6">
-              <label className="block text-gray-700 font-semibold mb-2">Time:</label>
+              <label className="block text-gray-700 font-semibold mb-2">
+                Time:
+              </label>
               <input
                 type="time"
                 name="appointmentTime"
@@ -194,7 +210,9 @@ export default function BookAppointment() {
 
             {/* Session Type */}
             <div className="mb-6">
-              <label className="block text-gray-700 font-semibold mb-2">Session Type:</label>
+              <label className="block text-gray-700 font-semibold mb-2">
+                Session Type:
+              </label>
               <select
                 name="sessionType"
                 value={formData.sessionType}
@@ -209,7 +227,9 @@ export default function BookAppointment() {
 
             {/* Notes */}
             <div className="mb-6">
-              <label className="block text-gray-700 font-semibold mb-2">Additional Notes (Optional):</label>
+              <label className="block text-gray-700 font-semibold mb-2">
+                Additional Notes (Optional):
+              </label>
               <textarea
                 name="notes"
                 value={formData.notes}
