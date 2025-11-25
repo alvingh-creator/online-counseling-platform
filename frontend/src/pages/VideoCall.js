@@ -3,34 +3,54 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL =
+  process.env.REACT_APP_API_URL ||
+  'https://online-counseling-platform-api.onrender.com/api';
 
 export default function VideoCall() {
   const { appointmentId } = useParams();
   const { token, user } = useContext(AuthContext);
   const navigate = useNavigate();
+
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [appointment, setAppointment] = useState(null);
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    authorizeAndLoad();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appointmentId]);
 
-  const checkAuth = async () => {
+  const authorizeAndLoad = async () => {
     try {
-      let response;
+      setLoading(true);
+
+      // 1) Ask backend if this user is authorized for this appointment
+      const authRes = await axios.get(
+        `${API_URL}/appointments/authorize-video/${appointmentId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (!authRes.data?.success) {
+        setAuthorized(false);
+        setLoading(false);
+        return;
+      }
+
+      // 2) Fetch appointment details based on role
+      let apptRes;
       if (user?.role === 'client') {
-        response = await axios.get(`${API_URL}/appointments/my-appointments`, {
+        apptRes = await axios.get(`${API_URL}/appointments/my-appointments`, {
           headers: { Authorization: `Bearer ${token}` }
         });
       } else {
-        response = await axios.get(`${API_URL}/appointments/counselor-appointments`, {
+        apptRes = await axios.get(`${API_URL}/appointments/counselor-appointments`, {
           headers: { Authorization: `Bearer ${token}` }
         });
       }
-      
-      const appt = response.data.data.find(a => a._id === appointmentId);
+
+      const appt = apptRes.data?.data?.find(a => a._id === appointmentId);
+
       if (appt) {
         setAuthorized(true);
         setAppointment(appt);
@@ -38,6 +58,7 @@ export default function VideoCall() {
         setAuthorized(false);
       }
     } catch (err) {
+      console.error('Video authorize error:', err?.response?.data || err.message);
       setAuthorized(false);
     } finally {
       setLoading(false);
@@ -58,7 +79,9 @@ export default function VideoCall() {
         <div className="bg-white p-8 rounded-lg text-center max-w-md">
           <div className="text-6xl mb-4">🚫</div>
           <h2 className="text-2xl font-bold text-red-600 mb-4">Not Authorized</h2>
-          <p className="text-gray-600 mb-6">You don't have access to this video call.</p>
+          <p className="text-gray-600 mb-6">
+            You don't have access to this video call.
+          </p>
           <button
             onClick={() => navigate('/dashboard')}
             className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-semibold"
@@ -96,8 +119,10 @@ export default function VideoCall() {
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="bg-white rounded-2xl shadow-2xl p-8 text-center">
           <div className="text-6xl mb-6">📹</div>
-          <h2 className="text-3xl font-bold text-gray-800 mb-4">Ready to Join Video Call?</h2>
-          
+          <h2 className="text-3xl font-bold text-gray-800 mb-4">
+            Ready to Join Video Call?
+          </h2>
+
           {/* Appointment Details */}
           <div className="bg-blue-50 rounded-lg p-6 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
@@ -145,7 +170,7 @@ export default function VideoCall() {
             >
               💬 Go to Chat Instead
             </a>
-            
+
             <button
               onClick={() => {
                 navigator.clipboard.writeText(jitsiUrl);
@@ -165,8 +190,14 @@ export default function VideoCall() {
 
           {/* Info */}
           <div className="mt-8 text-sm text-gray-600">
-            <p>💡 <strong>Tip:</strong> Make sure your camera and microphone are working before joining.</p>
-            <p className="mt-2">🔒 This is a private room. Only share the link with authorized participants.</p>
+            <p>
+              💡 <strong>Tip:</strong> Make sure your camera and microphone are
+              working before joining.
+            </p>
+            <p className="mt-2">
+              🔒 This is a private room. Only share the link with authorized
+              participants.
+            </p>
           </div>
         </div>
       </div>
