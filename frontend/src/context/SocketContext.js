@@ -1,3 +1,4 @@
+// frontend/context/SocketContext.js
 import { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { AuthContext } from './AuthContext';
@@ -11,52 +12,33 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (!user || !token) {
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-      }
+      if (socket) socket.disconnect();
+      setSocket(null);
       setConnected(false);
       return;
     }
 
-    let SOCKET_URL;
-    if (process.env.NODE_ENV === 'production') {
-      // Use Render backend in production
-      SOCKET_URL = 'https://online-counseling-platform-api.onrender.com';
-    } else {
-      // Use localhost in development
-      SOCKET_URL = 'http://localhost:5000';
-    }
+    const SOCKET_URL =
+      process.env.NODE_ENV === 'production'
+        ? 'https://online-counseling-platform-api.onrender.com'
+        : 'http://localhost:5000';
 
-    console.log('🔌 Connecting to Socket at:', SOCKET_URL);
-
-    const newSocket = io(SOCKET_URL, {
+    const s = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
+      reconnectionDelay: 1000
     });
 
-    newSocket.on('connect', () => {
-      console.log('✅ Socket connected:', newSocket.id);
-      setConnected(true);
-    });
+    setSocket(s);
 
-    newSocket.on('connect_error', (error) => {
-      console.error('❌ Socket error:', error);
-      setConnected(false);
-    });
-
-    newSocket.on('disconnect', (reason) => {
-      console.log('⚠️ Socket disconnected:', reason);
-      setConnected(false);
-    });
-
-    setSocket(newSocket);
+    s.on('connect', () => setConnected(true));
+    s.on('disconnect', () => setConnected(false));
+    s.on('connect_error', () => setConnected(false));
 
     return () => {
-      if (newSocket) newSocket.disconnect();
+      s.disconnect();
     };
   }, [user, token]);
 
@@ -67,10 +49,4 @@ export const SocketProvider = ({ children }) => {
   );
 };
 
-export const useSocket = () => {
-  const context = useContext(SocketContext);
-  if (!context) {
-    throw new Error('useSocket must be used within SocketProvider');
-  }
-  return context;
-};
+export const useSocket = () => useContext(SocketContext);

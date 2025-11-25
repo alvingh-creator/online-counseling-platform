@@ -2,11 +2,10 @@ import { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import AppointmentCard from '../components/AppointmentCard';
 
 const API_URL =
-process.env.REACT_APP_API_URL ||
-'https://online-counseling-platform-api.onrender.com/api';
+  process.env.REACT_APP_API_URL ||
+  'https://online-counseling-platform-api.onrender.com/api';
 
 export default function ClientDashboard() {
   const { user, logout, token } = useContext(AuthContext);
@@ -42,16 +41,25 @@ export default function ClientDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Navigation Bar */}
-      <nav className="bg-gradient-to-r from-blue-600 to-purple-600 shadow-2xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-3xl font-bold text-white">💚 CounselHub</h1>
-          <div className="space-x-4 flex items-center">
-            <span className="text-white font-semibold">{user?.name}</span>
+    <div className="min-h-screen bg-slate-50">
+      {/* Top Bar */}
+      <nav className="border-b bg-white/80 backdrop-blur sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
+              C
+            </div>
+            <span className="font-semibold text-slate-900 tracking-tight">
+              CounselHub
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-600 hidden sm:inline">
+              {user?.name}
+            </span>
             <button
               onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition transform hover:scale-105"
+              className="inline-flex items-center rounded-md bg-red-500 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-red-600"
             >
               Logout
             </button>
@@ -59,200 +67,179 @@ export default function ClientDashboard() {
         </div>
       </nav>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      {/* Main */}
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
         {/* Tabs */}
-        <div className="flex space-x-4 mb-8 overflow-x-auto pb-2">
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`px-6 py-3 rounded-lg font-semibold transition transform hover:scale-105 whitespace-nowrap ${
-              activeTab === 'profile'
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                : 'bg-white text-gray-700 hover:shadow-lg'
-            }`}
-          >
-            👤 My Profile
-          </button>
-          <button
-            onClick={() => setActiveTab('appointments')}
-            className={`px-6 py-3 rounded-lg font-semibold transition transform hover:scale-105 whitespace-nowrap ${
-              activeTab === 'appointments'
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                : 'bg-white text-gray-700 hover:shadow-lg'
-            }`}
-          >
-            📅 My Appointments ({appointments.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('findCounselor')}
-            className={`px-6 py-3 rounded-lg font-semibold transition transform hover:scale-105 whitespace-nowrap ${
-              activeTab === 'findCounselor'
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                : 'bg-white text-gray-700 hover:shadow-lg'
-            }`}
-          >
-            🔍 Find Counselor
-          </button>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {[
+            { id: 'profile', label: 'Profile' },
+            { id: 'appointments', label: 'Appointments' },
+            { id: 'findCounselor', label: 'Find Counselor' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition ${
+                activeTab === tab.id
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+              }`}
+            >
+              {tab.label}
+              {tab.id === 'appointments' && appointments.length > 0 && (
+                <span className="ml-2 inline-flex h-5 min-w-[1.5rem] items-center justify-center rounded-full bg-slate-900/10 text-[11px] font-semibold text-slate-700">
+                  {appointments.length}
+                </span>
+              )}
+            </button>
+          ))}
           <button
             onClick={() => navigate('/client-records')}
-            className="px-6 py-3 rounded-lg font-semibold transition transform hover:scale-105 whitespace-nowrap bg-white text-gray-700 hover:shadow-lg"
+            className="ml-auto px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border bg-white text-slate-600 border-slate-200 hover:border-slate-400"
           >
-            📋 My Records
+            Records
           </button>
         </div>
 
-        {/* Profile Tab */}
+        {/* Profile */}
         {activeTab === 'profile' && (
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <h2 className="text-4xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-              My Profile
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Profile Info */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-8 border-2 border-blue-200">
-                <h3 className="text-2xl font-bold mb-6 text-blue-900">Personal Information</h3>
-                
-                <div className="space-y-5">
-                  <div className="border-b-2 border-blue-200 pb-4">
-                    <label className="text-blue-600 font-semibold text-sm uppercase">Name</label>
-                    <p className="text-gray-800 text-xl font-bold">{user?.name}</p>
-                  </div>
-                  
-                  <div className="border-b-2 border-blue-200 pb-4">
-                    <label className="text-blue-600 font-semibold text-sm uppercase">Email</label>
-                    <p className="text-gray-800 text-lg">{user?.email}</p>
-                  </div>
-                  
-                  <div className="border-b-2 border-blue-200 pb-4">
-                    <label className="text-blue-600 font-semibold text-sm uppercase">Account Type</label>
-                    <p className="text-gray-800 text-lg"><span className="bg-blue-200 text-blue-900 px-3 py-1 rounded-full font-bold">Client</span></p>
-                  </div>
-                  
-                  <div>
-                    <label className="text-blue-600 font-semibold text-sm uppercase">Member Since</label>
-                    <p className="text-gray-800 text-lg">{new Date().toLocaleDateString()}</p>
-                  </div>
+          <section className="grid gap-6 md:grid-cols-2">
+            {/* Info */}
+            <div className="rounded-2xl border bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+                Account overview
+              </h2>
+              <div className="space-y-4 text-sm">
+                <div>
+                  <p className="text-slate-500 text-xs uppercase tracking-wide">
+                    Name
+                  </p>
+                  <p className="text-slate-900 font-medium">{user?.name}</p>
                 </div>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="space-y-4">
-                <div className="bg-gradient-to-br from-green-400 to-green-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition">
-                  <h3 className="text-5xl font-bold mb-1">{appointments.length}</h3>
-                  <p className="text-green-100 text-lg">Total Appointments</p>
+                <div>
+                  <p className="text-slate-500 text-xs uppercase tracking-wide">
+                    Email
+                  </p>
+                  <p className="text-slate-900">{user?.email}</p>
                 </div>
-
-                <div className="bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition">
-                  <h3 className="text-5xl font-bold mb-1">
-                    {appointments.filter(a => a.status === 'confirmed').length}
-                  </h3>
-                  <p className="text-purple-100 text-lg">Confirmed Bookings</p>
-                </div>
-
-                <div className="bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition">
-                  <h3 className="text-5xl font-bold mb-1">
-                    ₹{appointments.reduce((sum, a) => sum + (a.amount || 0), 0)}
-                  </h3>
-                  <p className="text-orange-100 text-lg">Total Spent</p>
+                <div>
+                  <p className="text-slate-500 text-xs uppercase tracking-wide">
+                    Account type
+                  </p>
+                  <span className="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-100">
+                    Client
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
+
+            {/* Stats */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <StatCard
+                label="Total appointments"
+                value={appointments.length}
+              />
+              <StatCard
+                label="Confirmed"
+                value={appointments.filter(a => a.status === 'confirmed').length}
+              />
+              <StatCard
+                label="Total spent"
+                value={
+                  '₹' +
+                  appointments.reduce((sum, a) => sum + (a.amount || 0), 0)
+                }
+              />
+            </div>
+          </section>
         )}
 
-        {/* Appointments Tab */}
+        {/* Appointments */}
         {activeTab === 'appointments' && (
-          <div>
-            <h2 className="text-4xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-              My Appointments
+          <section>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">
+              Your appointments
             </h2>
-            
             {loadingAppointments ? (
-              <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
-                <div className="inline-block animate-spin">
-                  <div className="text-4xl">⏳</div>
-                </div>
-                <p className="text-gray-500 text-lg mt-4">Loading appointments...</p>
+              <div className="rounded-2xl border bg-white p-10 text-center text-sm text-slate-500">
+                Loading appointments…
               </div>
             ) : appointments.length === 0 ? (
-              <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
-                <div className="text-6xl mb-4">📭</div>
-                <p className="text-gray-500 text-lg mb-6">No appointments yet</p>
+              <div className="rounded-2xl border bg-white p-10 text-center">
+                <p className="text-sm text-slate-500 mb-4">
+                  You don&apos;t have any appointments yet.
+                </p>
                 <button
                   onClick={() => setActiveTab('findCounselor')}
-                  className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg text-white px-8 py-3 rounded-lg font-semibold transition transform hover:scale-105"
+                  className="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
                 >
-                  📅 Book an Appointment
+                  Book your first session
                 </button>
               </div>
             ) : (
-              <div className="grid gap-6">
-                {appointments.map(appointment => (
+              <div className="space-y-4">
+                {appointments.map(appt => (
                   <ClientAppointmentCard
-                    key={appointment._id}
-                    appointment={appointment}
+                    key={appt._id}
+                    appointment={appt}
                     token={token}
                     onUpdate={fetchAppointments}
                   />
                 ))}
               </div>
             )}
-          </div>
+          </section>
         )}
 
-        {/* Find Counselor Tab */}
+        {/* Find Counselor */}
         {activeTab === 'findCounselor' && (
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <h2 className="text-4xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-              Find a Counselor
+          <section className="rounded-2xl border bg-white p-8 text-center shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900 mb-2">
+              Find a counselor
             </h2>
-            
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🔍</div>
-              <p className="text-gray-500 text-lg mb-6">Browse and book appointments with our licensed counselors</p>
-              <a
-                href="/browse-counselors"
-                className="inline-block bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg text-white px-8 py-3 rounded-lg font-semibold transition transform hover:scale-105"
-              >
-                Browse Counselors
-              </a>
-            </div>
-          </div>
+            <p className="text-sm text-slate-500 mb-6">
+              Browse available counselors and book a session that fits your
+              schedule.
+            </p>
+            <button
+              onClick={() => navigate('/browse-counselors')}
+              className="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              Browse counselors
+            </button>
+          </section>
         )}
       </div>
     </div>
   );
 }
 
-// Client-specific appointment card
+/* Simple stat card */
+function StatCard({ label, value }) {
+  return (
+    <div className="rounded-2xl border bg-white p-4 shadow-sm flex flex-col justify-between">
+      <p className="text-xs text-slate-500 uppercase tracking-wide mb-2">
+        {label}
+      </p>
+      <p className="text-2xl font-semibold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+/* Appointment card stays feature-rich but visually calmer */
 function ClientAppointmentCard({ appointment, token, onUpdate }) {
   const [loading, setLoading] = useState(false);
 
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'confirmed': return 'bg-gradient-to-r from-green-400 to-green-600';
-      case 'pending': return 'bg-gradient-to-r from-yellow-400 to-yellow-600';
-      case 'completed': return 'bg-gradient-to-r from-blue-400 to-blue-600';
-      case 'rejected': return 'bg-gradient-to-r from-red-400 to-red-600';
-      case 'cancelled': return 'bg-gradient-to-r from-gray-400 to-gray-600';
-      default: return 'bg-gray-400';
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch(status) {
-      case 'confirmed': return '✓';
-      case 'pending': return '⏳';
-      case 'completed': return '✓✓';
-      case 'rejected': return '✕';
-      case 'cancelled': return '✕';
-      default: return '•';
-    }
+  const statusStyles = {
+    confirmed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    pending: 'bg-amber-50 text-amber-700 border-amber-200',
+    completed: 'bg-blue-50 text-blue-700 border-blue-200',
+    rejected: 'bg-rose-50 text-rose-700 border-rose-200',
+    cancelled: 'bg-slate-50 text-slate-600 border-slate-200'
   };
 
   const handleCancel = async () => {
-    if (!window.confirm('Are you sure you want to cancel this appointment?')) return;
+    if (!window.confirm('Cancel this appointment?')) return;
     try {
       setLoading(true);
       await axios.put(
@@ -262,122 +249,116 @@ function ClientAppointmentCard({ appointment, token, onUpdate }) {
       );
       onUpdate?.();
     } catch (err) {
-      alert('Error: ' + (err.response?.data?.message || 'Failed to cancel'));
+      alert(err.response?.data?.message || 'Failed to cancel');
     } finally {
       setLoading(false);
     }
   };
 
+  const statusClass =
+    statusStyles[appointment.status] || 'bg-slate-50 text-slate-700 border';
+
   return (
-    <div className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:scale-105">
-      {/* Header with Status */}
-      <div className={`${getStatusColor(appointment.status)} p-6 text-white`}>
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-2xl font-bold mb-1">
-              {appointment.counselor?.name}
-            </h3>
-            <p className="text-sm opacity-90">
-              {appointment.counselor?.specialization}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="text-4xl mb-1">{getStatusIcon(appointment.status)}</div>
-            <span className="text-xs font-bold uppercase tracking-wider bg-black bg-opacity-20 px-3 py-1 rounded-full">
-              {appointment.status}
-            </span>
-          </div>
+    <div className="rounded-2xl border bg-white shadow-sm hover:shadow-md transition overflow-hidden">
+      <div className="flex items-start justify-between border-b px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-900">
+            {appointment.counselor?.name}
+          </p>
+          <p className="text-xs text-slate-500">
+            {appointment.counselor?.specialization}
+          </p>
         </div>
+        <span
+          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium border ${statusClass}`}
+        >
+          {appointment.status}
+        </span>
       </div>
 
-      {/* Body */}
-      <div className="p-6">
-        {/* Date & Time */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <p className="text-xs text-gray-600 font-semibold">📅 Date</p>
-            <p className="text-lg font-bold text-gray-800">
-              {new Date(appointment.appointmentDate).toLocaleDateString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric'
-              })}
+      <div className="px-4 py-3 space-y-3 text-sm">
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <p className="text-xs text-slate-500">Date</p>
+            <p className="font-medium text-slate-900">
+              {new Date(appointment.appointmentDate).toLocaleDateString(
+                'en-US',
+                { weekday: 'short', month: 'short', day: 'numeric' }
+              )}
             </p>
           </div>
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <p className="text-xs text-gray-600 font-semibold">🕐 Time</p>
-            <p className="text-lg font-bold text-gray-800">
+          <div className="flex-1">
+            <p className="text-xs text-slate-500">Time</p>
+            <p className="font-medium text-slate-900">
               {appointment.appointmentTime}
             </p>
           </div>
         </div>
 
-        {/* Service Details */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div className="bg-green-50 p-4 rounded-lg">
-            <p className="text-xs text-gray-600 font-semibold">💼 Service</p>
-            <p className="text-sm font-bold text-gray-800 capitalize">
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <p className="text-xs text-slate-500">Service</p>
+            <p className="font-medium text-slate-900 capitalize">
               {appointment.serviceType?.replace('-', ' ')}
             </p>
           </div>
-          <div className="bg-orange-50 p-4 rounded-lg">
-            <p className="text-xs text-gray-600 font-semibold">📱 Type</p>
-            <p className="text-sm font-bold text-gray-800 capitalize">
+          <div className="flex-1">
+            <p className="text-xs text-slate-500">Session type</p>
+            <p className="font-medium text-slate-900 capitalize">
               {appointment.sessionType}
             </p>
           </div>
         </div>
 
-        {/* Amount */}
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg mb-4">
-          <p className="text-xs text-gray-600 font-semibold">💰 Amount</p>
-          <p className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
-            ₹{appointment.amount}
+        <div>
+          <p className="text-xs text-slate-500">Amount</p>
+          <p className="font-semibold text-slate-900">
+            ₹{appointment.amount ?? 0}
           </p>
         </div>
 
-        {/* Your Notes */}
         {appointment.notes && (
-          <div className="bg-blue-50 p-4 rounded-lg mb-4 border-l-4 border-blue-500">
-            <p className="text-xs text-gray-600 font-semibold mb-1">📝 Your Notes</p>
-            <p className="text-sm text-gray-700">{appointment.notes}</p>
+          <div className="rounded-md bg-slate-50 px-3 py-2">
+            <p className="text-xs text-slate-500 mb-1">Your notes</p>
+            <p className="text-xs text-slate-700">{appointment.notes}</p>
           </div>
         )}
 
-        {/* Counselor Notes */}
         {appointment.counselorNotes && (
-          <div className="bg-purple-50 p-4 rounded-lg mb-4 border-l-4 border-purple-500">
-            <p className="text-xs text-gray-600 font-semibold mb-1">📋 Counselor Notes</p>
-            <p className="text-sm text-gray-700">{appointment.counselorNotes}</p>
+          <div className="rounded-md bg-slate-50 px-3 py-2">
+            <p className="text-xs text-slate-500 mb-1">Counselor notes</p>
+            <p className="text-xs text-slate-700">
+              {appointment.counselorNotes}
+            </p>
           </div>
         )}
       </div>
 
-      {/* Actions */}
-      <div className="bg-gray-50 px-6 py-4 flex gap-3 flex-wrap">
+      <div className="border-t bg-slate-50 px-4 py-3 flex flex-wrap gap-2">
         {appointment.status === 'confirmed' && (
           <a
             href={`/video/${appointment._id}`}
-            className="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold transition transform hover:scale-105 text-center"
+            className="flex-1 min-w-[120px] inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800"
           >
-            🎥 Join Video
+            Join video
           </a>
         )}
         <a
           href={`/chat/${appointment._id}`}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition transform hover:scale-105 text-center"
+          className="flex-1 min-w-[120px] inline-flex items-center justify-center rounded-md bg-white px-3 py-2 text-xs font-medium text-slate-800 border border-slate-200 hover:border-slate-400"
         >
-          💬 Chat
+          Open chat
         </a>
-        {appointment.status !== 'cancelled' && appointment.status !== 'rejected' && (
-          <button
-            onClick={handleCancel}
-            disabled={loading}
-            className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition transform hover:scale-105 disabled:opacity-50"
-          >
-            ✕ Cancel
-          </button>
-        )}
+        {appointment.status !== 'cancelled' &&
+          appointment.status !== 'rejected' && (
+            <button
+              onClick={handleCancel}
+              disabled={loading}
+              className="flex-1 min-w-[120px] inline-flex items-center justify-center rounded-md bg-white px-3 py-2 text-xs font-medium text-rose-600 border border-rose-200 hover:border-rose-400 disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          )}
       </div>
     </div>
   );

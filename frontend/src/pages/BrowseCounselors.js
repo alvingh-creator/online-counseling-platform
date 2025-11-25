@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://online-counseling-platform-api.onrender.com/api';
+const API_URL =
+  process.env.REACT_APP_API_URL ||
+  'https://online-counseling-platform-api.onrender.com/api';
 
 export default function BrowseCounselors() {
   const [counselors, setCounselors] = useState([]);
@@ -12,7 +14,10 @@ export default function BrowseCounselors() {
   const { token } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  useEffect(() => { fetchCounselors(); }, []);
+  useEffect(() => {
+    fetchCounselors();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const fetchCounselors = async () => {
     try {
@@ -23,83 +28,135 @@ export default function BrowseCounselors() {
       setCounselors(response.data.data || []);
       setError('');
     } catch (err) {
-      setError('Failed to load counselors');
       console.error(err?.response?.data || err.message);
+      setError('Failed to load counselors');
     } finally {
       setLoading(false);
     }
   };
 
   const handleBookAppointment = (counselorId) => {
-    // Use counselor ID from counselors list, guaranteed to be correct
     navigate(`/book-appointment/${counselorId}`);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-200 py-8">
-      <div className="max-w-5xl mx-auto px-2 sm:px-4">
-        <div className="mb-10 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2 tracking-tight">Browse Counselors</h1>
-          <p className="text-gray-600 text-lg">Find qualified counselors and book appointments instantly.</p>
-        </div>
+    <div className="min-h-screen bg-slate-50">
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Header */}
+        <header className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 tracking-tight">
+              Find a counselor
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Browse available professionals and book a session that fits your needs.
+            </p>
+          </div>
+        </header>
+
+        {/* Error */}
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 text-center">
+          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
           </div>
         )}
+
+        {/* States */}
         {loading ? (
-          <div className="flex justify-center items-center py-40">
-            <div className="animate-spin h-10 w-10 text-blue-700">⏳</div>
-            <span className="ml-2 text-lg font-semibold text-blue-700">Loading counselors...</span>
+          <div className="flex items-center justify-center py-24 text-sm text-slate-500">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700 mr-2" />
+            Loading counselors…
           </div>
         ) : counselors.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-md p-8 text-center">
-            <p className="text-gray-500 text-lg">No counselors available yet.</p>
+          <div className="rounded-2xl border bg-white p-10 text-center shadow-sm">
+            <p className="text-sm text-slate-500">
+              No counselors are available yet. Please check back later.
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {counselors.map(counselor => (
-              <div key={counselor._id} className="bg-white rounded-xl shadow-lg hover:shadow-2xl border border-gray-100 transition duration-200 flex flex-col justify-between">
-                <div className="px-5 pt-5 pb-3 flex flex-row items-center gap-3">
-                  {counselor.profilePic ? (
-                    <img src={counselor.profilePic} alt="Counselor" className="h-12 w-12 rounded-full object-cover border border-blue-400" />
-                  ) : (
-                    <div className="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg border">{
-                        counselor.name ? counselor.name.charAt(0).toUpperCase() : 'C'
-                      }</div>
-                  )}
-                  <div>
-                    <div className="font-semibold text-xl text-gray-800">{counselor.name}</div>
-                    <div className="text-blue-600 font-medium text-sm">{counselor.specialization || 'General Counseling'}</div>
-                  </div>
-                </div>
-                <div className="px-5 pb-3">
-                  <div className="text-xs text-gray-400 mb-1">Email</div>
-                  <div className="text-sm text-gray-900 font-mono break-words">{counselor.email}</div>
-                  <div className="flex justify-between mt-3 text-sm text-gray-700">
-                    <div>
-                      <span className="font-medium text-green-600">₹{counselor.hourlyRate || "N/A"}</span>
-                      <span className="ml-1 text-gray-400">/hr</span>
-                    </div>
-                    <div>
-                      <span className="font-medium">License: </span>
-                      <span className="text-gray-500 font-mono">{counselor.licenseNumber || "N/A"}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="px-5 py-4">
-                  <button
-                    onClick={() => handleBookAppointment(counselor._id)}
-                    className="w-full py-2 text-sm font-semibold rounded-lg bg-gradient-to-r from-blue-600 to-purple-500 text-white hover:from-blue-700 hover:to-purple-600 shadow"
-                  >
-                    Book Appointment
-                  </button>
-                </div>
-              </div>
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {counselors.map((counselor) => (
+              <CounselorCard
+                key={counselor._id}
+                counselor={counselor}
+                onBook={handleBookAppointment}
+              />
             ))}
-          </div>
+          </section>
         )}
       </div>
     </div>
+  );
+}
+
+function CounselorCard({ counselor, onBook }) {
+  const initial =
+    counselor.name && counselor.name.length > 0
+      ? counselor.name.charAt(0).toUpperCase()
+      : 'C';
+
+  return (
+    <article className="flex flex-col rounded-2xl border border-slate-100 bg-white shadow-sm hover:shadow-md transition">
+      <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+        {counselor.profilePic ? (
+          <img
+            src={counselor.profilePic}
+            alt={counselor.name}
+            className="h-11 w-11 rounded-full object-cover border border-slate-200"
+          />
+        ) : (
+          <div className="h-11 w-11 rounded-full bg-slate-900 text-white flex items-center justify-center text-sm font-semibold">
+            {initial}
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-slate-900 truncate">
+            {counselor.name}
+          </p>
+          <p className="text-xs text-slate-500 truncate">
+            {counselor.specialization || 'General counseling'}
+          </p>
+        </div>
+      </div>
+
+      <div className="px-4 pb-3 text-xs text-slate-600 space-y-2">
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-slate-400">
+            Email
+          </p>
+          <p className="font-mono break-all text-xs text-slate-800">
+            {counselor.email}
+          </p>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-[11px] uppercase tracking-wide text-slate-400">
+              Rate
+            </p>
+            <p className="text-sm font-semibold text-slate-900">
+              ₹{counselor.hourlyRate || 'N/A'}
+              <span className="text-xs text-slate-500 ml-1">/hour</span>
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[11px] uppercase tracking-wide text-slate-400">
+              License
+            </p>
+            <p className="font-mono text-xs text-slate-700">
+              {counselor.licenseNumber || 'N/A'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-auto border-t border-slate-100 px-4 py-3">
+        <button
+          onClick={() => onBook(counselor._id)}
+          className="w-full inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-800"
+        >
+          Book appointment
+        </button>
+      </div>
+    </article>
   );
 }

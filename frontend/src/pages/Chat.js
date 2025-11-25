@@ -5,7 +5,7 @@ import { useSocket } from '../context/SocketContext';
 
 export default function Chat() {
   const { appointmentId } = useParams();
-  const { user, token } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { socket, connected } = useSocket();
 
@@ -14,7 +14,6 @@ export default function Chat() {
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
 
-  // Scroll to bottom when new message arrives
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -23,68 +22,50 @@ export default function Chat() {
     scrollToBottom();
   }, [messages]);
 
-  // Join chat room and setup message listeners
   useEffect(() => {
     if (!socket || !appointmentId) {
-      if (connected === false) {
-        setLoading(true);
-      }
+      if (connected === false) setLoading(true);
       return;
     }
 
-    console.log('📍 Setting up chat for appointment:', appointmentId);
     setLoading(false);
 
-    // Join the chat room
     socket.emit('join-chat', {
       appointmentId,
       userId: user?.id
     });
-    console.log('✅ Joined chat room');
 
-    // Receive messages
     const handleReceiveMessage = (data) => {
-      console.log('💬 Received message:', data);
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        ...data
-      }]);
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now(), ...data }
+      ]);
     };
 
-    // User joined
     const handleUserJoined = (data) => {
-      console.log('👤 User joined:', data);
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        ...data,
-        type: 'system'
-      }]);
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now(), ...data, type: 'system' }
+      ]);
     };
 
-    // User left
     const handleUserLeft = (data) => {
-      console.log('👋 User left:', data);
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        ...data,
-        type: 'system'
-      }]);
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now(), ...data, type: 'system' }
+      ]);
     };
 
-    // Chat joined confirmation
-    const handleChatJoined = (data) => {
-      console.log('🎉 Chat joined successfully:', data);
+    const handleChatJoined = () => {
+      // optional: log or show toast
     };
 
-    // Setup listeners
     socket.on('receive-message', handleReceiveMessage);
     socket.on('user-joined', handleUserJoined);
     socket.on('user-left', handleUserLeft);
     socket.on('chat-joined', handleChatJoined);
 
-    // Cleanup on unmount
     return () => {
-      console.log('Leaving chat room...');
       socket.emit('leave-chat', {
         appointmentId,
         userId: user?.id
@@ -95,128 +76,154 @@ export default function Chat() {
       socket.off('user-left', handleUserLeft);
       socket.off('chat-joined', handleChatJoined);
     };
-  }, [socket, appointmentId, user]);
+  }, [socket, appointmentId, user, connected]);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
+    if (!messageInput.trim() || !socket || !connected) return;
 
-    if (!messageInput.trim() || !socket || !connected) {
-      console.log('⚠️ Cannot send: input empty or not connected');
-      return;
-    }
-
-    console.log('📤 Sending message:', messageInput);
-
-    // Send message through socket
-    socket.emit('send-message', {
+    const payload = {
       appointmentId,
       message: messageInput,
       sender: user?.id,
       senderName: user?.name,
       timestamp: new Date()
-    });
+    };
 
-    // Add message to local state immediately (optimistic update)
-    setMessages(prev => [...prev, {
-      id: Date.now(),
-      message: messageInput,
-      sender: user?.id,
-      senderName: user?.name,
-      timestamp: new Date()
-    }]);
+    socket.emit('send-message', payload);
+
+    setMessages(prev => [
+      ...prev,
+      { id: Date.now(), ...payload }
+    ]);
 
     setMessageInput('');
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-blue-600 mb-2">⏳ Connecting to chat...</div>
-          <p className="text-gray-600">Connected to socket: {connected ? '✅' : '❌'}</p>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <p className="text-sm font-medium text-slate-700">
+            Connecting to chat…
+          </p>
+          <p className="text-xs text-slate-500">
+            Socket status: {connected ? 'Connected' : 'Disconnected'}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white shadow-lg p-4 flex justify-between items-center">
+      <header className="border-b bg-white/80 backdrop-blur px-4 py-3 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">💬 Chat Room</h1>
-          <p className={`text-sm font-semibold ${connected ? 'text-green-600' : 'text-red-600'}`}>
-            {connected ? '🟢 Connected' : '🔴 Disconnected'}
+          <h1 className="text-sm font-semibold text-slate-900">
+            Appointment chat
+          </h1>
+          <p className="text-[11px] text-slate-500">
+            {connected ? (
+              <span className="inline-flex items-center gap-1 text-emerald-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Connected
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-rose-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+                Disconnected
+              </span>
+            )}
           </p>
         </div>
         <button
           onClick={() => navigate('/dashboard')}
-          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition"
+          className="inline-flex items-center rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-400"
         >
-          Back to Dashboard
+          Back to dashboard
         </button>
-      </div>
+      </header>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      {/* Messages */}
+      <main className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No messages yet. Start the conversation!</p>
+          <div className="flex h-full items-center justify-center">
+            <p className="text-xs text-slate-500">
+              No messages yet. Start the conversation.
+            </p>
           </div>
         ) : (
-          messages.map(msg => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.sender === user?.id ? 'justify-end' : 'justify-start'}`}
-            >
-              {msg.type === 'system' ? (
-                <div className="text-center text-gray-500 text-sm italic">
-                  {msg.message}
-                </div>
-              ) : (
+          messages.map(msg => {
+            if (msg.type === 'system') {
+              return (
                 <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                    msg.sender === user?.id
-                      ? 'bg-blue-600 text-white rounded-br-none'
-                      : 'bg-gray-300 text-gray-800 rounded-bl-none'
+                  key={msg.id}
+                  className="flex justify-center text-[11px] text-slate-500"
+                >
+                  <span className="rounded-full bg-slate-100 px-3 py-1">
+                    {msg.message}
+                  </span>
+                </div>
+              );
+            }
+
+            const isSelf = msg.sender === user?.id;
+            return (
+              <div
+                key={msg.id}
+                className={`flex ${isSelf ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-xs sm:max-w-md rounded-2xl px-3 py-2 text-xs shadow-sm ${
+                    isSelf
+                      ? 'bg-slate-900 text-white rounded-br-sm'
+                      : 'bg-white text-slate-900 border border-slate-200 rounded-bl-sm'
                   }`}
                 >
-                  <p className="font-semibold text-sm mb-1">{msg.senderName}</p>
-                  <p>{msg.message}</p>
-                  <p className="text-xs mt-1 opacity-70">
-                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  <p className="mb-0.5 text-[11px] font-medium opacity-80">
+                    {msg.senderName}
+                  </p>
+                  <p className="text-[13px] leading-snug">{msg.message}</p>
+                  <p className="mt-1 text-[10px] opacity-60 text-right">
+                    {new Date(msg.timestamp).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
                   </p>
                 </div>
-              )}
-            </div>
-          ))
+              </div>
+            );
+          })
         )}
         <div ref={messagesEndRef} />
-      </div>
+      </main>
 
-      {/* Message Input */}
-      <div className="bg-white shadow-lg p-4">
-        <form onSubmit={handleSendMessage} className="flex space-x-2">
+      {/* Input */}
+      <footer className="border-t bg-white/90 backdrop-blur px-4 py-3">
+        <form onSubmit={handleSendMessage} className="flex gap-2">
           <input
             type="text"
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
-            placeholder="Type a message..."
+            placeholder={connected ? 'Type a message…' : 'Reconnecting…'}
             disabled={!connected}
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200"
+            className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-slate-900 disabled:bg-slate-100"
           />
           <button
             type="submit"
             disabled={!connected || !messageInput.trim()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition disabled:bg-gray-400"
+            className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Send
           </button>
         </form>
         {!connected && (
-          <p className="text-red-600 text-sm mt-2">⚠️ Connection lost. Attempting to reconnect...</p>
+          <p className="mt-2 text-[11px] text-rose-600">
+            Connection lost. Trying to reconnect…
+          </p>
         )}
-      </div>
+      </footer>
     </div>
   );
 }
